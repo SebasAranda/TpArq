@@ -22,3 +22,64 @@ selCat:		.asciiz "\nSe ha seleccionado la categoria: "
 idObj:		.asciiz "\nIngrese el ID del objeto a eliminar: "
 ObjName:	.asciiz "\nIngrese el nombre de un objeto: "
 success:	.asciiz "La operacion se realizó con exito\n\n"
+
+smalloc:
+	lw	$t0, slist
+	beqz	$t0, sbrk
+	move	$v0, $t0
+	lw	$t0, 12($t0)
+	sw	$t0, slist
+	jr	$ra
+sbrk:
+	li	$a0, 16 # node fixed 5 words
+	li	$v0, 9
+	syscall		# return node address in v0
+	jr	$ra
+sfree:
+	lw	$t0, slist
+	sw	$t0, 12($a0)
+	sw	$a0, slist # $a0 node address in unused list
+	jr	$ra
+newcategory:
+	addiu	$sp, $sp, -4
+	sw	$ra, 4($sp)
+	la	$a0, catName		# input category name
+	jal	getblock
+	move	$a2, $v0		# $a2 = char to category name
+	la	$a0, cclist		# $a0 = list
+	li	$a1, 0			# $a1 = NULL
+	jal	addnode
+	lw	$t0, wlist
+	bnez	$t0, newcategory_end
+	sw	$v0, wclist		# update working list if was NULL
+newcategory_end:
+	li	$v0, 0			# return success
+	lw	$ra, 4($sp)
+	addiu	$sp, $sp, 4
+	jr	$ra
+
+Anexos:
+	# $a0: list address
+	# $a1: NULL if category, node address if object
+	# $v0: node address added
+addnode:
+	addi	$sp, $sp. -8
+	sw	$ra, 8($sp)
+	sw	$a0, 4($sp)
+	jal	smalloc
+	sw	$a1, 4($v0)		# set node content
+	sw	$a2, 8($v0)
+	lw	$a0, 4($sp)
+	lw	$t0, ($a0)		# first node address
+	beqz	$t0, addnode_empty_list
+addnode_to_end:
+	lw	$t1, ($t0)
+	# update prev and next pointers of new node
+	sw	$t1, 0($v0)
+	sw	$t0, 12($v0)
+	# update prev and first	node to new node
+	sw	$v0, 12($t1)
+	sw	$v0, 0($t0)
+	j	addnode_exit
+	
+	
