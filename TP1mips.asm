@@ -81,5 +81,38 @@ addnode_to_end:
 	sw	$v0, 12($t1)
 	sw	$v0, 0($t0)
 	j	addnode_exit
-	
-	
+addnode_empty_list:
+	sw	$v0, ($a0)
+	sw	$v0, 0($v0)
+	sw	$v0, 12($v0)
+addnode_exit:
+	lw	$ra, 8($sp)
+	addi	$sp, $sp, 8
+	jr	$ra
+	# a0: node address to delete
+	# a1: list address where node is deleted
+delnode:
+	addi	$sp, $sp, -8
+	sw	$ra, 8($sp)
+	sw	$a0, 4($sp)
+	lw	$a0, 8($a0)	# get block address
+	jal	sfree		# free block
+	lw	$a0, 4($sp)	# restore argument a0
+	lw	$t0, 12($a0)	# get address to next node of a0
+node
+	beq	$a0, $t0, delnode_point_self
+	lw	$t1, 0($a0)	# get address to prev node
+	sw	$t1, 0($t0)
+	sw	$t0, 12($t1)
+	lw	$t1, 0($a1)	# get address to first node
+again
+	bne	$a0, $t1, delnode_exit
+	sw	$t0, ($a1)	# list point to next node
+	j	delnode_exit
+delnode_point_self:
+	sw	$zero, ($a1)	# only one node
+delnode_exit:
+	jal	sfree
+	lw	$ra, 8($sp)
+	addi	$sp, $sp, 8
+	jr	$ra
